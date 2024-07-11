@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nearby Restaurants</title>
+    <style>
+        /* CSS styles for the layout */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1f1c2c 0%, #928dab 100%);
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+            font-size: 2.5em;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        .restaurant {
+            padding: 25px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+            margin-bottom: 25px;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+        .restaurant::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+            opacity: 0.4;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .restaurant:hover::before {
+            opacity: 0.6;
+        }
+        .restaurant:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.7);
+        }
+        .restaurant-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 12px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .restaurant-info {
+            color: #ccc;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+        .restaurant-rating {
+            color: #ffac2f;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .floating-card {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 500px;
+            padding: 25px;
+            background-color: rgba(0, 0, 0, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 10;
+            animation: fadeIn 0.3s ease-in-out;
+            color: #fff;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        .close-button:hover {
+            color: #fff;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -45%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nearby Restaurants</h1>
+        <div id="restaurants"></div>
+    </div>
+
+    <div class="floating-card" id="floatingCard">
+        <button class="close-button" onclick="closeFloatingCard()">✖</button>
+        <div id="floatingCardContent"></div>
+    </div>
+
+    <script>
+        // JavaScript for fetching nearby restaurants and displaying them
+        function getNearbyRestaurants() {
+            // Check if geolocation is supported by the browser
+            if ("geolocation" in navigator) {
+                // Get user's current location
+                navigator.geolocation.getCurrentPosition(position => {
+                    var userLat = position.coords.latitude;
+                    var userLon = position.coords.longitude;
+
+                    // Fetch nearby restaurants using user's location
+                    fetch(`/nearby_restaurants/${userLat}/${userLon}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const images = [
+                            'D:/studies/amcat/images/food.jpg',
+                            'D:/studies/amcat/images/images1.jpeg',
+                            'D:/studies/amcat/images/images2.jpeg',
+                            'D:/studies/amcat/images/images3.jpeg',
+                            'D:/studies/amcat/images/food.jpg'
+                        ];
+                        data.forEach((restaurant, index) => {
+                            // Create a div element for each restaurant
+                            var restaurantElement = document.createElement('div');
+                            restaurantElement.className = 'restaurant';
+                            restaurantElement.style.backgroundImage = `url(${images[index % images.length]})`;
+                            restaurantElement.innerHTML = `
+                                <div class="restaurant-name">${restaurant.name}</div>
+                                <div class="restaurant-info">
+                                    <strong>Distance:</strong> ${restaurant.distance_km.toFixed(2)} km<br>
+                                    <strong>Rating:</strong> <span class="restaurant-rating">${restaurant.rating}</span><br>
+                                    <strong>Latitude:</strong> ${restaurant.latitude}<br>
+                                    <strong>Longitude:</strong> ${restaurant.longitude}
+                                </div>
+                            `;
+                            restaurantElement.addEventListener('click', () => showFloatingCard(restaurant));
+                            document.getElementById('restaurants').appendChild(restaurantElement);
+                        });
+                    });
+                }, error => {
+                    console.error("Error getting user's location:", error);
+                });
+            } else {
+                console.error("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showFloatingCard(restaurant) {
+            var floatingCard = document.getElementById('floatingCard');
+            var floatingCardContent = document.getElementById('floatingCardContent');
+            floatingCardContent.innerHTML = `
+                <div class="restaurant-name">${restaurant.name}</div>
+                <div class="restaurant-info">
+                    <strong>Distance:</strong> ${restaurant.distance_km.toFixed(2)} km<br>
+                    <strong>Rating:</strong> <span class="restaurant-rating">${restaurant.rating}</span><br>
+                    <strong>Latitude:</strong> ${restaurant.latitude}<br>
+                    <strong>Longitude:</strong> ${restaurant.longitude}
+                </div>
+            `;
+            floatingCard.style.display = 'block';
+        }
+
+        function closeFloatingCard() {
+            var floatingCard = document.getElementById('floatingCard');
+            floatingCard.style.display = 'none';
+        }
+
+        // Call the function to get nearby restaurants when the page loads
+        getNearbyRestaurants();
+    </script>
+</body>
+</html>
